@@ -2,22 +2,30 @@
 
 using namespace std;
 
-int SymbolTable::getIndex(const string &str)
+template <>
+SymbolTable<true>::SymbolTable()
 {
-	for (int i = 0; i < strs.size(); ++i)
+	getIndex("~"); // insert EPSILON to terminatorTable
+}
+
+template <bool b>
+int SymbolTable<b>::getIndex(const string &str)
+{
+	for (int i = 0; i < symbols.size(); ++i)
 	{
-		if (strs[i] == str) // str exist
+		if (symbols[i] == str) // str exist
 			return i;
 	}
 	// str does NOT exist, add it to table
-	strs.push_back(str);
-	return strs.size() - 1;
+	symbols.push_back(str);
+	return symbols.size() - 1;
 }
 
-string SymbolTable::getStr(int i)
+template <bool b>
+string SymbolTable<b>::getStr(int i)const
 {
-	if (i >= 0 && i < strs.size())
-		return strs[i];
+	if (i >= 0 && i < symbols.size())
+		return symbols[i];
 	else
 		return "";
 }
