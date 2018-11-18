@@ -296,8 +296,93 @@ void GrammaTable::getFollows()
 	}
 }
 
-void GrammaTable::getM()
+First GrammaTable::getFirst(const Candidate &candidate) const
 {
+	First result;
+	for (auto symbol : candidate)
+	{
+		if (symbol.type == Symbol::SymbolType::T)
+		{
+			// add this terminator, even EPSILON
+			if (result.find(symbol) == result.end())
+			{
+				result.insert(symbol);
+			}
+			return result;
+		}
+		else // symbol.type == NT
+		{
+			for (auto first : firsts[symbol.index])
+			{
+				if (result.find(first) == result.end())
+				{
+					result.insert(first);
+				}
+			}
+			if (firsts[symbol.index].find(EPSILON) == firsts[symbol.index].end())
+			{
+				return result;
+			}
+		}
+	}
+	return result;
+}
+
+bool GrammaTable::getM()
+{
+	M.clear();
+
+	// init M
+	for (int i = 0; i < ntTable.size(); ++i)
+	{
+		for (int j = 1; j < tTable.size(); ++j)
+		{
+			M.insert(make_pair(MapKey({i, j}), TableItem()));
+		}
+	}
+
+	for (int i = 0; i < grammas.size(); ++i)
+	{
+		for (int j = 0; j < grammas[i].size(); ++j) // for each candidate
+		{
+			for (auto first : getFirst(grammas[i][j]))
+			{
+				if (M[{i, first.index}] == TableItem({i, j}))
+					;
+				else if (M[{i, first.index}].ntIndex == -1)
+				{
+					// ok to set value
+					M[{i, first.index}] = {i, j};
+				}
+				else
+				{
+					// this item already has value, error
+					error = true;
+					return false;
+				}
+				if (firsts[i].find(EPSILON) != firsts[i].end()) // FIRST contains EPSILON
+				{
+					for (auto follow : follows[i])
+					{
+						if (M[{i, follow.index}] == TableItem({i, j}))
+							;
+						else if (M[{i, follow.index}].ntIndex == -1)
+						{
+							// ok to set value
+							M[{i, follow.index}] = {i, j};
+						}
+						else
+						{
+							// this item already has value, error
+							error = true;
+							return false;
+						}
+					}
+				}
+			}
+		}
+	}
+	return true;
 }
 
 int GrammaTable::insert(const string &grammaLine)
@@ -419,14 +504,32 @@ bool GrammaTable::start()
 	killLeftRecursion();
 	getFirsts();
 	getFollows();
-	getM();
-	return true;
+	return getM();
+}
+
+void GrammaTable::outputSingleCandidate(int ntIndex, int candidateIndex) const
+{
+	cout << ntTable.getStr(ntIndex) << " -> ";
+	for (auto symbol : grammas[ntIndex][candidateIndex])
+	{
+		if (symbol.type == Symbol::SymbolType::NT)
+		{
+			cout << ntTable.getStr(symbol.index);
+		}
+		else
+		{
+			cout << tTable.getStr(symbol.index);
+		}
+	}
 }
 
 void GrammaTable::output() const
 {
-	if (error)
-		cout << "Can NOT parse gramma to LL(1)\n";
+	// if (error)
+	// {
+	// 	cout << "Can NOT parse gramma to LL(1)\n";
+	// 	return;
+	// }
 
 	cout << "Format gramma:\n";
 	for (int i = 0; i < grammas.size(); ++i)
@@ -455,6 +558,7 @@ void GrammaTable::output() const
 			cout << endl;
 	}
 	cout << endl;
+
 	cout << "First:\n";
 	for (int i = 0; i < firsts.size(); ++i)
 	{
@@ -466,6 +570,7 @@ void GrammaTable::output() const
 		cout << "\n";
 	}
 	cout << endl;
+
 	cout << "Follows:\n";
 	for (int i = 0; i < firsts.size(); ++i)
 	{
@@ -475,6 +580,18 @@ void GrammaTable::output() const
 			cout << tTable.getStr(follow.index) << " ";
 		}
 		cout << "\n";
+	}
+	cout << endl;
+
+	cout << "Predict Analyze Table:\n";
+	for (auto item : M)
+	{
+		if (item.second.ntIndex != -1)
+		{
+			cout << "[" << ntTable.getStr(item.first.ntIndex) << ", " << tTable.getStr(item.first.tIndex) << "]: ";
+			outputSingleCandidate(item.second.ntIndex, item.second.candidateIndex);
+			cout << endl;
+		}
 	}
 	cout << endl;
 }

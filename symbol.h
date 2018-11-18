@@ -17,7 +17,7 @@ struct Symbol
 
 	bool operator==(const Symbol &ano) const { return ano.type == type && ano.index == index; }
 	bool operator!=(const Symbol &ano) const { return !(*this == ano); }
-	bool operator<(const Symbol &ano) const { return index < ano.index; }
+	bool operator<(const Symbol &ano) const { return index * (type == T ? 1 : -1) < ano.index * (ano.type == T ? 1 : -1); }
 };
 
 template <bool isTerminatorTable>
@@ -31,6 +31,7 @@ public:
 	SymbolTable();
 	int getIndex(const string &str); // if str not exist, push it into symbols
 	string getStr(int i) const;			 // return blank string if i is invalid
+	int size() const { return symbols.size(); }
 };
 
 const Symbol EPSILON = {Symbol::SymbolType::T, 0};
