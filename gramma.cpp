@@ -48,7 +48,8 @@ void GrammaTable::killDuplicated(int index)
 		{
 			for (int j = i + 1; j < grammas[index].size(); ++j)
 			{
-				if (grammas[index][i] == grammas[index][j]){
+				if (grammas[index][i] == grammas[index][j])
+				{
 					// eliminate grammas[index][j]
 					grammas[index].erase(grammas[index].begin() + j);
 					--j;
@@ -56,6 +57,247 @@ void GrammaTable::killDuplicated(int index)
 			}
 		}
 	}
+}
+
+void GrammaTable::killLeftRecursion()
+{
+	for (int i = 0; i < grammas.size(); ++i)
+	{
+		//eliminate explicit left recursion
+		killExplicitLeftRecursion(i);
+		for (int j = 0; j < i; ++j)
+		{
+			// find Ai -> Ajxxx
+			for (int k = 0; k < grammas[i].size(); ++k)
+			{
+				//for each candidate
+				if (grammas[i][k][0].type == Symbol::SymbolType::NT && grammas[i][k][0].index == j)
+				{
+					// grammas[i][k]: Ai -> Ajxxx
+					auto AjCandidates = grammas[j];
+					for (auto candidate : AjCandidates)
+					{
+						candidate.insert(candidate.end(), grammas[i][k].begin() + 1, grammas[i][k].end());
+						grammas[i].push_back(candidate);
+					}
+					grammas[i].erase(grammas[i].begin() + k);
+					killExplicitLeftRecursion(i);
+				}
+			}
+		}
+		// killUseless();
+	}
+	killEpsilon();
+}
+
+void GrammaTable::killExplicitLeftRecursion(int index)
+{
+	vector<vector<Symbol>> newCandidates;
+	for (int i = 0; i < grammas[index].size(); ++i) // for each candidate
+	{
+		if (grammas[index][i][0].type == Symbol::SymbolType::NT && grammas[index][i][0].index == index)
+		{
+			//explicit left recursion exist
+			//get left recursion candidate and delete the origin one
+			vector<Symbol> candidate = grammas[index][i];
+			grammas[index].erase(grammas[index].begin() + i);
+			--i;
+			newCandidates.push_back(candidate);
+		}
+	}
+
+	if (newCandidates.size()) // explicit left recursion exist
+	{
+		//add a new NT
+		int newIndex = ntTable.getIndex(ntTable.getStr(index) + '\'');
+		//construct this new NT
+		for (int i = 0; i < newCandidates.size(); ++i)
+		{
+			//erase first element, kill left recursion
+			newCandidates[i].erase(newCandidates[i].begin());
+			//add new symbol to the end
+			newCandidates[i].push_back({Symbol::SymbolType::NT, newIndex});
+		}
+		//add epsilon
+		if (grammas[index].size())
+		{
+			vector<Symbol> epsilon;
+			epsilon.push_back(EPSILON);
+			newCandidates.push_back(epsilon);
+		}
+		grammas.push_back(newCandidates);
+
+		// renew old candidate
+		for (int i = 0; i < grammas[index].size(); ++i)
+		{
+			grammas[index][i].push_back({Symbol::SymbolType::NT, newIndex});
+		}
+		if (!grammas[index].size())
+		{
+			vector<Symbol> t;
+			t.push_back({Symbol::SymbolType::NT, newIndex});
+			grammas[index].push_back(t);
+		}
+	}
+}
+
+void GrammaTable::killEpsilon()
+{
+	for (auto &gramma : grammas)
+	{
+		for (auto &candidate : gramma)
+		{
+			for (int i = 0; i < candidate.size(); ++i)
+			{
+				if (candidate[i] == EPSILON && candidate.size() > 1)
+				{
+					candidate.erase(candidate.begin() + i);
+					--i;
+				}
+			}
+		}
+	}
+}
+
+void GrammaTable::getFirsts()
+{
+	firsts.clear();
+	// add empty set
+	for (int i = 0; i < grammas.size(); ++i)
+	{
+		firsts.push_back(First());
+	}
+
+	bool changed = true;
+	while (changed)
+	{
+		changed = false;
+		for (int i = 0; i < grammas.size(); ++i) // for each gramma
+		{
+
+			for (int j = 0; j < grammas[i].size(); ++j) // for each candidate
+			{
+				for (auto symbol : grammas[i][j])
+				{
+					if (symbol.type == Symbol::SymbolType::T)
+					{
+						// add this terminator, even EPSILON
+						if (firsts[i].find(symbol) == firsts[i].end())
+						{
+							changed = true;
+							firsts[i].insert(symbol);
+						}
+						break; // to next candidate
+					}
+					else // symbol.type == NT
+					{
+						for (auto first : firsts[symbol.index])
+						{
+							if (firsts[i].find(first) == firsts[i].end())
+							{
+								changed = true;
+								firsts[i].insert(first);
+							}
+						}
+						if (firsts[symbol.index].find(EPSILON) == firsts[symbol.index].end())
+						{
+							break; // to next candidate
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void GrammaTable::getFollows()
+{
+	follows.clear();
+	// add empty set
+	for (int i = 0; i < grammas.size(); ++i)
+	{
+		follows.push_back(Follow());
+	}
+
+	// add END
+	follows[0].insert(END);
+
+	bool changed = true;
+	while (changed)
+	{
+		changed = false;
+		for (int i = 0; i < grammas.size(); ++i) // for each gramma
+		{
+			for (int j = 0; j < grammas[i].size(); ++j) // for each candidate
+			{
+				for (int k = 0; k < grammas[i][j].size(); ++k) // for each symbol
+				{
+					if (grammas[i][j][k].type == Symbol::SymbolType::NT) // this is an NT
+					{
+						if (k + 1 < grammas[i][j].size()) // next symbol exist
+						{
+							if (grammas[i][j][k + 1].type == Symbol::SymbolType::T) // next symbol is a terminator(it will not be END or EPSILON)
+							{
+								if (follows[grammas[i][j][k].index].find(grammas[i][j][k + 1]) == follows[grammas[i][j][k].index].end())
+								{
+									changed = true;
+									follows[grammas[i][j][k].index].insert(grammas[i][j][k + 1]);
+								}
+								break; // to next candidate
+							}
+							else // next symbol is a NT
+							{
+								bool hasEPSILON = false;
+								for (int x = k + 1; x < grammas[i][j].size(); ++x)
+								{
+									for (auto first : firsts[grammas[i][j][k + 1].index])
+									{
+										if (first != EPSILON && follows[grammas[i][j][k].index].find(first) == follows[grammas[i][j][k].index].end())
+										{
+											changed = true;
+											follows[grammas[i][j][k].index].insert(first);
+										}
+										else if (first == EPSILON)
+										{
+											hasEPSILON = true;
+										}
+									}
+									if (!hasEPSILON)
+										break;
+								}
+								if (hasEPSILON) // the last NT in this candidate has EPSILON in its FIRST
+								{
+									for (auto follow : follows[i])
+									{
+										if (follows[grammas[i][j][k].index].find(follow) == follows[grammas[i][j][k].index].end())
+										{
+											changed = true;
+											follows[grammas[i][j][k].index].insert(follow);
+										}
+									}
+								}
+							}
+						}
+						else //next symbol not exist
+						{
+							for (auto follow : follows[i])
+							{
+								if (follows[grammas[i][j][k].index].find(follow) == follows[grammas[i][j][k].index].end())
+								{
+									changed = true;
+									follows[grammas[i][j][k].index].insert(follow);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void GrammaTable::getM()
+{
 }
 
 int GrammaTable::insert(const string &grammaLine)
@@ -172,8 +414,21 @@ int GrammaTable::insert(const string &grammaLine)
 	return 0;
 }
 
+bool GrammaTable::start()
+{
+	killLeftRecursion();
+	getFirsts();
+	getFollows();
+	getM();
+	return true;
+}
+
 void GrammaTable::output() const
 {
+	if (error)
+		cout << "Can NOT parse gramma to LL(1)\n";
+
+	cout << "Format gramma:\n";
 	for (int i = 0; i < grammas.size(); ++i)
 	{
 		if (grammas[i].size())
@@ -198,6 +453,28 @@ void GrammaTable::output() const
 		}
 		if (grammas[i].size())
 			cout << endl;
+	}
+	cout << endl;
+	cout << "First:\n";
+	for (int i = 0; i < firsts.size(); ++i)
+	{
+		cout << "First(" << ntTable.getStr(i) << "): ";
+		for (auto first : firsts[i])
+		{
+			cout << tTable.getStr(first.index) << " ";
+		}
+		cout << "\n";
+	}
+	cout << endl;
+	cout << "Follows:\n";
+	for (int i = 0; i < firsts.size(); ++i)
+	{
+		cout << "Follow(" << ntTable.getStr(i) << "): ";
+		for (auto follow : follows[i])
+		{
+			cout << tTable.getStr(follow.index) << " ";
+		}
+		cout << "\n";
 	}
 	cout << endl;
 }

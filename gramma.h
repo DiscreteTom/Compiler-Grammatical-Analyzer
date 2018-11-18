@@ -2,15 +2,34 @@
 
 #include "symbol.h"
 #include <vector>
+#include <set>
+#include <map>
 
-typedef vector<Symbol> Candidate;
-typedef vector<Candidate> Gramma;
+using namespace std;
+
+using Candidate = vector<Symbol>;
+using Gramma = vector<Candidate>;
+using First = set<Symbol>;
+using Follow = set<Symbol>;
 
 bool operator==(const Candidate &c1, const Candidate &c2);
+
+struct TableItem // item in predict analysis table M
+{
+	int ntIndex;				// non-terminator index in grammas
+	int candidateIndex; // candidate index in grammas[ntIndex]
+};
+
+struct MapKey
+{
+	int ntIndex;
+	int tIndex;
+};
 
 class GrammaTable
 {
 private:
+	// input
 	vector<Gramma> grammas;
 	T_Table tTable;
 	NT_Table ntTable;
@@ -19,6 +38,11 @@ private:
 	int lineCount;
 	bool error;
 
+	// process
+	vector<First> firsts;
+	vector<Follow> follows;
+	map<MapKey, TableItem> M; // predict analysis table
+
 	string format(const string &str); // discard blank chars, return blank string if format is wrong
 	/**
 	 * killDuplicated:
@@ -26,6 +50,12 @@ private:
 	 * eliminate same Candidate in each Gramma when index == -1
 	 */
 	void killDuplicated(int index = -1);
+	void killExplicitLeftRecursion(int index);
+	void killEpsilon();
+	void killLeftRecursion();
+	void getFirsts();
+	void getFollows();
+	void getM();
 
 public:
 	GrammaTable() : lineCount(0), error(false){};

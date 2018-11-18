@@ -17,6 +17,7 @@ struct Symbol
 
 	bool operator==(const Symbol &ano) const { return ano.type == type && ano.index == index; }
 	bool operator!=(const Symbol &ano) const { return !(*this == ano); }
+	bool operator<(const Symbol &ano) const { return index < ano.index; }
 };
 
 template <bool isTerminatorTable>
@@ -33,14 +34,16 @@ public:
 };
 
 const Symbol EPSILON = {Symbol::SymbolType::T, 0};
+const Symbol END = {Symbol::SymbolType::T, 1};
 
-typedef SymbolTable<true> T_Table;
-typedef SymbolTable<false> NT_Table;
+using T_Table = SymbolTable<true>;
+using NT_Table = SymbolTable<false>;
 
 template <>
 inline SymbolTable<true>::SymbolTable()
 {
 	getIndex("~"); // insert EPSILON to terminatorTable
+	getIndex("$"); // insert END to terminatorTable
 }
 
 template <bool b>
