@@ -703,7 +703,20 @@ bool GrammaTable::parse(const string &str) const
 	cout << endl;
 	do
 	{
-		if (s.top().type == Symbol::SymbolType::T || s.top() == END)
+		if (s.top() == END)
+		{
+			if (input[i] != END)
+			{
+				cout << "Input not belongs to this gramma.\n";
+				return false;
+			}
+			else
+			{
+				cout << "Accept.\n\n";
+				return true;
+			}
+		}
+		else if (s.top().type == Symbol::SymbolType::T)
 		{
 			if (s.top() == input[i])
 			{
@@ -738,7 +751,5 @@ bool GrammaTable::parse(const string &str) const
 				return false;
 			}
 		}
-	} while (s.top() != END);
-	cout << "Accept.\n\n";
-	return true;
+	} while (1);
 }
