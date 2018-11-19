@@ -345,8 +345,11 @@ bool GrammaTable::getM()
 	{
 		for (int j = 0; j < grammas[i].size(); ++j) // for each candidate
 		{
+			bool containEPSILON = false;
 			for (auto first : getFirst(grammas[i][j]))
 			{
+				if (first == EPSILON)
+					containEPSILON = true;
 				if (M[{i, first.index}] == TableItem({i, j}))
 					;
 				else if (M[{i, first.index}].ntIndex == -1)
@@ -360,7 +363,7 @@ bool GrammaTable::getM()
 					error = true;
 					return false;
 				}
-				if (firsts[i].find(EPSILON) != firsts[i].end()) // FIRST contains EPSILON
+				if (containEPSILON) // FIRST contains EPSILON
 				{
 					for (auto follow : follows[i])
 					{
@@ -525,11 +528,11 @@ void GrammaTable::outputSingleCandidate(int ntIndex, int candidateIndex) const
 
 void GrammaTable::output() const
 {
-	// if (error)
-	// {
-	// 	cout << "Can NOT parse gramma to LL(1)\n";
-	// 	return;
-	// }
+	if (error)
+	{
+		cout << "Can NOT parse gramma to LL(1)\n";
+		return;
+	}
 
 	cout << "Format gramma:\n";
 	for (int i = 0; i < grammas.size(); ++i)
