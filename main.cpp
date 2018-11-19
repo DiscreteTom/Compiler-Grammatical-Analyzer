@@ -3,8 +3,12 @@
 
 using namespace std;
 
+void showDeveloper();
+
 int main()
 {
+	showDeveloper();
+
 	GrammaTable gt;
 	string t;
 
@@ -44,4 +48,14 @@ int main()
 		}
 	}
 	system("pause");
+}
+
+void showDeveloper()
+{
+	cout << "*************************************************************\n"
+			 << "           Compiler-Grammatical-Analyzer(CGA)\n"
+			 << "                 Written By DiscreteTom\n"
+			 << "             See source code and report BUG at\n"
+			 << "https://github.com/DiscreteTom/Compiler-Grammatical-Analyzer\n"
+			 << "*************************************************************\n\n";
 }
