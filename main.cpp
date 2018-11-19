@@ -56,6 +56,6 @@ void showDeveloper()
 			 << "           Compiler-Grammatical-Analyzer(CGA)\n"
 			 << "                 Written By DiscreteTom\n"
 			 << "             See source code and report BUG at\n"
-			 << "   https://github.com/DiscreteTom/Compiler-Lexical-Analyzer\n"
+			 << "https://github.com/DiscreteTom/Compiler-Grammatical-Analyzer\n"
 			 << "*************************************************************\n\n";
 }
