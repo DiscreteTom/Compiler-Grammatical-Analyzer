@@ -45,7 +45,8 @@ private:
 	vector<Follow> follows;
 	map<MapKey, TableItem> M; // predict analysis table
 
-	string format(const string &str); // discard blank chars, return blank string if format is wrong
+	void killBlank(string &str) const; // discard blank chars
+	bool format(string &str) const;		 // return false if format is wrong
 	/**
 	 * killDuplicated:
 	 * eliminate same Candidate in grammas[index] if index != -1
@@ -59,15 +60,17 @@ private:
 	First getFirst(const Candidate &candidate) const;
 	void getFollows();
 	bool getM();
+	Candidate parseInputToCandidate(const string &str) const; // return empty candidate if error
 	void outputSingleCandidate(int ntIndex, int candidateIndex) const;
 
 public:
 	GrammaTable() : lineCount(0), error(false){};
 
 	int insert(const string &grammaLine); // return 0 if ok, otherwise return lineCount
-	bool start();													// return false if error
+	bool generate();											// return false if error
 	void output() const;
 
 	bool ok() const { return !error; }
 	int currentLineCount() const { return lineCount; }
+	bool parse(const string &str) const;
 };

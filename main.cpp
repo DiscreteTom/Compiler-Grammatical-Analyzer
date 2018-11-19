@@ -25,8 +25,23 @@ int main()
 			getline(cin, t);
 		}
 	}
-	gt.start();
+	gt.generate();
 	cout << "Output:\n";
 	gt.output();
+
+	flag = true;
+	while (flag)
+	{
+		cout << "Input a line to parse, input blank line to stop.\n";
+		getline(cin, t);
+		if (t.length())
+		{
+			gt.parse(t);
+		}
+		else
+		{
+			flag = false;
+		}
+	}
 	system("pause");
 }
