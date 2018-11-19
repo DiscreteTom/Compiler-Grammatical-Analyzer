@@ -673,6 +673,10 @@ void GrammaTable::output() const
 
 bool GrammaTable::parse(const string &str) const
 {
+	if (error)
+	{
+		return false;
+	}
 	if (!M.size())
 	{
 		cout << "Predict Analyze Table is empty yet.\n";
@@ -696,6 +700,7 @@ bool GrammaTable::parse(const string &str) const
 
 	int i = 0;
 
+	cout << endl;
 	do
 	{
 		if (s.top().type == Symbol::SymbolType::T || s.top() == END)
@@ -723,7 +728,9 @@ bool GrammaTable::parse(const string &str) const
 					if (c[i] != EPSILON)
 						s.push(c[i]);
 				}
-				// TODO: output
+				cout << "Use: ";
+				outputSingleCandidate(aim.ntIndex, aim.candidateIndex);
+				cout << "\n";
 			}
 			else
 			{
@@ -732,5 +739,6 @@ bool GrammaTable::parse(const string &str) const
 			}
 		}
 	} while (s.top() != END);
+	cout << "Accept.\n\n";
 	return true;
 }
