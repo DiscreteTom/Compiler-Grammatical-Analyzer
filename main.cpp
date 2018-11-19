@@ -36,7 +36,7 @@ int main()
 	flag = true;
 	while (flag)
 	{
-		cout << "Input a line to parse, input blank line to stop.\n";
+		cout << "\nInput a line to parse, input blank line to stop.\n";
 		getline(cin, t);
 		if (t.length())
 		{

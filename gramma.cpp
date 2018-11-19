@@ -683,27 +683,41 @@ bool GrammaTable::parse(const string &str) const
 		return false;
 	}
 
-	stack<Symbol> s; // analyze stack
-
-	// init
-	s.push(END);
-	s.push(Symbol({Symbol::SymbolType::NT, 0})); // push the first NT
+	// get input symbols
 	string t = str;
 	killBlank(t);
 	auto input = parseInputToCandidate(t);
-	input.push_back(END);
 	if (!input.size())
 	{
 		cout << "Invalid input.\n";
 		return false;
 	}
+	input.push_back(END);
 
-	int i = 0;
+	// init stack
+	stack<Symbol> s; // analyze stack
+	s.push(END);
+	s.push(Symbol({Symbol::SymbolType::NT, 0})); // push the first NT
+
+	int i = 0; // index of str
 
 	cout << endl;
 	do
 	{
-		if (s.top().type == Symbol::SymbolType::T || s.top() == END)
+		if (s.top() == END)
+		{
+			if (input[i] != END)
+			{
+				cout << "Input not belongs to this gramma.\n";
+				return false;
+			}
+			else
+			{
+				cout << "Accept.\n\n";
+				return true;
+			}
+		}
+		else if (s.top().type == Symbol::SymbolType::T)
 		{
 			if (s.top() == input[i])
 			{
@@ -738,7 +752,5 @@ bool GrammaTable::parse(const string &str) const
 				return false;
 			}
 		}
-	} while (s.top() != END);
-	cout << "Accept.\n\n";
-	return true;
+	} while (1);
 }
