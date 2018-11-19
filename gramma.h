@@ -16,14 +16,16 @@ bool operator==(const Candidate &c1, const Candidate &c2);
 
 struct TableItem // item in predict analysis table M
 {
-	int ntIndex;				// non-terminator index in grammas
-	int candidateIndex; // candidate index in grammas[ntIndex]
+	int ntIndex = -1;				 // non-terminator index in grammas
+	int candidateIndex = -1; // candidate index in grammas[ntIndex]
+	bool operator==(const TableItem &ano) const { return ntIndex == ano.ntIndex && candidateIndex == ano.candidateIndex; }
 };
 
 struct MapKey
 {
 	int ntIndex;
 	int tIndex;
+	bool operator<(const MapKey &ano) const { return ntIndex + tIndex * 100 < ano.ntIndex + ano.tIndex * 100; }
 };
 
 class GrammaTable
@@ -54,8 +56,10 @@ private:
 	void killEpsilon();
 	void killLeftRecursion();
 	void getFirsts();
+	First getFirst(const Candidate &candidate) const;
 	void getFollows();
-	void getM();
+	bool getM();
+	void outputSingleCandidate(int ntIndex, int candidateIndex) const;
 
 public:
 	GrammaTable() : lineCount(0), error(false){};
