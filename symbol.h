@@ -29,8 +29,9 @@ private:
 
 public:
 	SymbolTable();
-	int getIndex(const string &str); // if str not exist, push it into symbols
-	string getStr(int i) const;			 // return blank string if i is invalid
+	int getIndex(const string &str);						 // if str not exist, push it into symbols
+	int getIndex(const string &str, bool) const; // return -1 if str not exist
+	string getStr(int i) const;									 // return blank string if i is invalid
 	int size() const { return symbols.size(); }
 };
 
@@ -61,6 +62,17 @@ int SymbolTable<b>::getIndex(const string &str)
 	// str does NOT exist, add it to table
 	symbols.push_back(str);
 	return symbols.size() - 1;
+}
+
+template <bool b>
+int SymbolTable<b>::getIndex(const string &str, bool) const
+{
+	for (int i = 0; i < symbols.size(); ++i)
+	{
+		if (symbols[i] == str) // str exist
+			return i;
+	}
+	return -1;
 }
 
 template <bool b>

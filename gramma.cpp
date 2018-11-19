@@ -1,4 +1,5 @@
 #include "gramma.h"
+#include <stack>
 
 #include <iostream>
 
@@ -16,19 +17,25 @@ bool operator==(const Candidate &c1, const Candidate &c2)
 	return true;
 }
 
-string GrammaTable::format(const string &str)
+void GrammaTable::killBlank(string &str) const
 {
 	string result;
 	for (auto c : str)
 	{
-		if (c != ' ' && c != '\t')
+		if (c != ' ' && c != '\t' && c != '\n')
 			result += c;
 	}
+	str = result;
+}
+
+bool GrammaTable::format(string &str) const
+{
+	killBlank(str);
 	//check format
 	int i = str.find('-');
 	if (str[i + 1] != '>')
-		result = "";
-	return result;
+		return false;
+	return true;
 }
 
 void GrammaTable::killDuplicated(int index)
@@ -330,6 +337,9 @@ First GrammaTable::getFirst(const Candidate &candidate) const
 
 bool GrammaTable::getM()
 {
+	if (error)
+		return false;
+
 	M.clear();
 
 	// init M
@@ -388,12 +398,72 @@ bool GrammaTable::getM()
 	return true;
 }
 
+Candidate GrammaTable::parseInputToCandidate(const string &str) const
+{
+	int i = 0;
+	Candidate result;
+	while (i < str.length())
+	{
+		string sym;
+		if (str[i] == '$')
+		{
+			while (i + 1 < str.length() && str[i + 1] != '$')
+			{
+				++i;
+				sym += str[i];
+			}
+			if (i == str.length() || sym.length() < 2)
+			{
+				// no matched $
+				result.clear();
+				return result;
+			}
+			else // str[i + 1] == $
+			{
+				++i;
+			}
+			int index = tTable.getIndex(sym, false);
+			if (index == -1)
+			{
+				result.clear();
+				return result;
+			}
+			result.push_back(Symbol({Symbol::SymbolType::T, index}));
+			sym = "";
+		}
+		else
+		{
+			// see other chars as terminator
+			sym += str[i];
+			while (i + 1 < str.length() && str[i] == '\'')
+			{
+				++i;
+				sym += str[i];
+			}
+			int index = tTable.getIndex(sym, false);
+			if (index == -1)
+			{
+				result.clear();
+				return result;
+			}
+			result.push_back(Symbol({Symbol::SymbolType::T, index}));
+		}
+		++i;
+	}
+	return result;
+}
+
 int GrammaTable::insert(const string &grammaLine)
 {
 	if (error)
 		return lineCount;
 	++lineCount;
-	string str = format(grammaLine);
+	string str = grammaLine;
+	if (!format(str))
+	{
+		error = true;
+		return lineCount;
+	}
 	if (!str.length())
 	{
 		error = true;
@@ -502,8 +572,10 @@ int GrammaTable::insert(const string &grammaLine)
 	return 0;
 }
 
-bool GrammaTable::start()
+bool GrammaTable::generate()
 {
+	if (error)
+		return false;
 	killLeftRecursion();
 	getFirsts();
 	getFollows();
@@ -597,4 +669,76 @@ void GrammaTable::output() const
 		}
 	}
 	cout << endl;
+}
+
+bool GrammaTable::parse(const string &str) const
+{
+	if (error)
+	{
+		return false;
+	}
+	if (!M.size())
+	{
+		cout << "Predict Analyze Table is empty yet.\n";
+		return false;
+	}
+
+	stack<Symbol> s; // analyze stack
+
+	// init
+	s.push(END);
+	s.push(Symbol({Symbol::SymbolType::NT, 0})); // push the first NT
+	string t = str;
+	killBlank(t);
+	auto input = parseInputToCandidate(t);
+	input.push_back(END);
+	if (!input.size())
+	{
+		cout << "Invalid input.\n";
+		return false;
+	}
+
+	int i = 0;
+
+	cout << endl;
+	do
+	{
+		if (s.top().type == Symbol::SymbolType::T || s.top() == END)
+		{
+			if (s.top() == input[i])
+			{
+				s.pop();
+				++i;
+			}
+			else
+			{
+				cout << "Input not belongs to this gramma.\n";
+				return false;
+			}
+		}
+		else // s.top() is a non-terminator
+		{
+			auto aim = M.at({s.top().index, input[i].index});
+			if (aim.ntIndex != -1) // table item exist
+			{
+				s.pop();
+				Candidate c = grammas[aim.ntIndex][aim.candidateIndex];
+				for (int i = c.size() - 1; i >= 0; --i)
+				{
+					if (c[i] != EPSILON)
+						s.push(c[i]);
+				}
+				cout << "Use: ";
+				outputSingleCandidate(aim.ntIndex, aim.candidateIndex);
+				cout << "\n";
+			}
+			else
+			{
+				cout << "Input not belongs to this gramma.\n";
+				return false;
+			}
+		}
+	} while (s.top() != END);
+	cout << "Accept.\n\n";
+	return true;
 }
