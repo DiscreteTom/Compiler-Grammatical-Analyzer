@@ -683,22 +683,23 @@ bool GrammaTable::parse(const string &str) const
 		return false;
 	}
 
-	stack<Symbol> s; // analyze stack
-
-	// init
-	s.push(END);
-	s.push(Symbol({Symbol::SymbolType::NT, 0})); // push the first NT
+	// get input symbols
 	string t = str;
 	killBlank(t);
 	auto input = parseInputToCandidate(t);
-	input.push_back(END);
 	if (!input.size())
 	{
 		cout << "Invalid input.\n";
 		return false;
 	}
+	input.push_back(END);
 
-	int i = 0;
+	// init stack
+	stack<Symbol> s; // analyze stack
+	s.push(END);
+	s.push(Symbol({Symbol::SymbolType::NT, 0})); // push the first NT
+
+	int i = 0; // index of str
 
 	cout << endl;
 	do
